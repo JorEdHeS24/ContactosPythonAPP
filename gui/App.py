@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import re
 from tkinter import filedialog
-import backend.db_conexion as dbc
+from repository import ContactoRepository
 
 class AgendaContactos:
     def __init__(self, root):
@@ -204,16 +204,6 @@ class AgendaContactos:
         if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             messagebox.showerror("Error", "Formato de email inválido")
             return
-        
-    def db_data(self):
-        self.contacts = dbc.get_db()
-        
-        for contact in self.contacts:
-            self.contactos_tree.insert("", tk.END, values=(
-                contact[1],
-                contact[2],
-                contact[3]
-            ))
     
     def agregar_contacto(self):
         
@@ -224,15 +214,11 @@ class AgendaContactos:
         self.validar_formato(full_name, telephone, email)
     
         # Agregar contacto a la lista.
-        contacto = {
-            "Full name": full_name,
-            "telefono": telephone,
-            "email": email
-        }
-        
-        self.contactos.append(contacto)
-        
-        # Actualizar la visualización.
+        if full_name and telephone:
+            ContactoRepository.guardar(full_name, telephone, email)
+            messagebox.showinfo("Éxito", "Contacto guardado")
+            
+
         self.actualizar_lista_contactos()
         
         # Limpiar campos.
@@ -243,7 +229,7 @@ class AgendaContactos:
         # Actualizar estadísticas.
         self.actualizar_estadisticas()
         
-        messagebox.showinfo("Éxito", f"Contacto {nombre} agregado correctamente")
+        messagebox.showinfo("Éxito", f"Contacto {full_name} agregado correctamente")
     
     def actualizar_lista_contactos(self):
         
@@ -251,9 +237,11 @@ class AgendaContactos:
         for item in self.contactos_tree.get_children():
             self.contactos_tree.delete(item)
             
+        contactos = ContactoRepository.obtener_todos()
+        # print(contactos)
         
         # Insertar todos los contactos.
-        for contacto in self.contactos:
+        for contacto in contactos:
             self.contactos_tree.insert("", tk.END, values=(
                 contacto["nombre"],
                 contacto["telefono"],
@@ -446,11 +434,3 @@ class AgendaContactos:
                 # texto.delete("1.0", tk.END)  # Limpia el contenido anterior
                 # texto.insert(tk.END, contenido)
 
-                                    
-
-# Iniciar la aplicación
-if __name__ == "__main__":
-    root = tk.Tk()    
-    app = AgendaContactos(root)
-    app.db_data()
-    root.mainloop()
