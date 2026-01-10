@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import re
 from tkinter import filedialog
+import backend.db_conexion as dbc
 
 class AgendaContactos:
     def __init__(self, root):
@@ -16,6 +17,7 @@ class AgendaContactos:
         
         # Lista para almacenar los contactos (cada contacto es un diccionario).
         self.contactos = []
+        self.contacts = None
         
         # Crear los elementos de la interfaz.
         self.crear_interfaz()
@@ -203,18 +205,28 @@ class AgendaContactos:
             messagebox.showerror("Error", "Formato de email inválido")
             return
         
+    def db_data(self):
+        self.contacts = dbc.get_db()
+        
+        for contact in self.contacts:
+            self.contactos_tree.insert("", tk.END, values=(
+                contact[1],
+                contact[2],
+                contact[3]
+            ))
+    
     def agregar_contacto(self):
         
-        nombre = self.nombre_entry.get().strip()
-        telefono = self.telefono_entry.get().strip()
+        full_name = self.nombre_entry.get().strip()
+        telephone = self.telefono_entry.get().strip()
         email = self.email_entry.get().strip()
         
-        self.validar_formato(nombre, telefono, email)
+        self.validar_formato(full_name, telephone, email)
     
         # Agregar contacto a la lista.
         contacto = {
-            "nombre": nombre,
-            "telefono": telefono,
+            "Full name": full_name,
+            "telefono": telephone,
             "email": email
         }
         
@@ -238,6 +250,7 @@ class AgendaContactos:
         # Limpiar lista actual.
         for item in self.contactos_tree.get_children():
             self.contactos_tree.delete(item)
+            
         
         # Insertar todos los contactos.
         for contacto in self.contactos:
@@ -432,10 +445,12 @@ class AgendaContactos:
                 # Mostrar el contenido en el widget Text
                 # texto.delete("1.0", tk.END)  # Limpia el contenido anterior
                 # texto.insert(tk.END, contenido)
+
                                     
 
 # Iniciar la aplicación
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = tk.Tk()    
     app = AgendaContactos(root)
+    app.db_data()
     root.mainloop()
