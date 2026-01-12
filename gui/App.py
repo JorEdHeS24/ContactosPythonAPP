@@ -3,6 +3,8 @@ from tkinter import messagebox, ttk
 import re
 from tkinter import filedialog
 from repository import ContactoRepository
+from pydantic import BaseModel
+from dataEntry import baseContact 
 
 class AgendaContactos:
     def __init__(self, root):
@@ -18,6 +20,7 @@ class AgendaContactos:
         # Lista para almacenar los contactos (cada contacto es un diccionario).
         self.contactos = []
         self.contacts = None
+        self.selected_contact_id = None
         
         # Crear los elementos de la interfaz.
         self.crear_interfaz()
@@ -111,6 +114,10 @@ class AgendaContactos:
         # Botón para agregar contacto.
         ttk.Button(input_frame, text="Agregar Contacto", command=self.agregar_contacto).grid(row=3, column=0, columnspan=2, pady=5)
         
+        # Después del botón "Agregar Contacto"
+        ttk.Button(input_frame, text="Actualizar Contacto", command=self.actualizar_contacto).grid(row=4, column=0, pady=5)
+        ttk.Button(input_frame, text="Eliminar Contacto", command=self.eliminar_contacto).grid(row=4, column=1, pady=5)
+        
         # Frame para operaciones (ordenamiento y búsqueda).
         operations_frame = ttk.LabelFrame(main_frame, text="Operaciones", padding="10")
         operations_frame.pack()
@@ -123,8 +130,8 @@ class AgendaContactos:
         upload_text_button.grid(row=1, column=2, sticky=tk.W, pady=2, padx=30)
         
         # Botones de ordenamiento.
-        ttk.Button(operations_frame, text="Ordenar por Nombre", command=lambda: self.ordenar_contactos("nombre")).grid(row=0, column=0, padx=5, pady=5)
-        ttk.Button(operations_frame, text="Ordenar por Teléfono", command=lambda: self.ordenar_contactos("telefono")).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(operations_frame, text="Ordenar por Nombre", command=lambda: self.ordenar_contactos("name")).grid(row=0, column=0, padx=5, pady=5)
+        ttk.Button(operations_frame, text="Ordenar por Teléfono", command=lambda: self.ordenar_contactos("telephone")).grid(row=0, column=1, padx=5, pady=5)
         
         # Sección de búsqueda.
         search_frame = ttk.Frame(operations_frame)
@@ -160,7 +167,7 @@ class AgendaContactos:
         
         # Área para visualización de contactos.
         lista_frame = ttk.LabelFrame(main_frame, text="Lista de Contactos", padding="10")
-        lista_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        lista_frame.pack(fill=tk.BOTH, expand=True, pady=5)        
         
         # Frame para el Treeview y su scrollbar.
         tree_frame = ttk.Frame(lista_frame)
@@ -183,41 +190,51 @@ class AgendaContactos:
         # Posicionar el Treeview y el Scrollbar.
         self.contactos_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.contactos_tree.bind('<<TreeviewSelect>>', self.on_contacto_select)
     
-    def validar_formato(self, nombre, telefono, email):
+    # def validar_formato(self, contact : baseContact):
         
-        # Validaciones básicas.
-        if not nombre:
-            messagebox.showerror("Error", "El nombre es obligatorio")
-            return
+        # # Validaciones básicas.
+        # if not nombre:
+        #     messagebox.showerror("Error", "El nombre es obligatorio")
+        #     return
         
-        if not telefono:
-            messagebox.showerror("Error", "El teléfono es obligatorio")
-            return
+        # if not telefono:
+        #     messagebox.showerror("Error", "El teléfono es obligatorio")
+        #     return
         
-        # Validar formato de teléfono (solo números).
-        if not re.match(r'^\d+$', telefono):
-            messagebox.showerror("Error", "El teléfono debe contener solo números")
-            return
+        # # Validar formato de teléfono (solo números).
+        # if not re.match(r'^\d+$', telefono):
+        #     messagebox.showerror("Error", "El teléfono debe contener solo números")
+        #     return
         
-        # Validar formato de email si está presente.
-        if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-            messagebox.showerror("Error", "Formato de email inválido")
-            return
+        # # Validar formato de email si está presente.
+        # if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        #     messagebox.showerror("Error", "Formato de email inválido")
+        #     return
     
     def agregar_contacto(self):
-        
-        full_name = self.nombre_entry.get().strip()
-        telephone = self.telefono_entry.get().strip()
-        email = self.email_entry.get().strip()
-        
-        self.validar_formato(full_name, telephone, email)
-    
-        # Agregar contacto a la lista.
-        if full_name and telephone:
-            ContactoRepository.guardar(full_name, telephone, email)
-            messagebox.showinfo("Éxito", "Contacto guardado")
+                        
+        try: 
+            name = self.nombre_entry.get().strip()
+            telephone = self.telefono_entry.get().strip()
+            email = self.email_entry.get().strip()
             
+            contacto = baseContact(
+                name=name,
+                telephone=telephone,
+                email=email if email else None            
+            )
+        
+            ContactoRepository.guardar(contacto.name, contacto.telephone, contacto.email)
+            messagebox.showinfo("Éxito", "Contacto guardado")
+        
+        except ValueError as e:
+            messagebox.showerror("Error de validación", str(e))
+        except Exception as e:
+            messagebox.showerror("Error", "Error al guardar contacto")
+                
 
         self.actualizar_lista_contactos()
         
@@ -229,22 +246,22 @@ class AgendaContactos:
         # Actualizar estadísticas.
         self.actualizar_estadisticas()
         
-        messagebox.showinfo("Éxito", f"Contacto {full_name} agregado correctamente")
+        messagebox.showinfo("Éxito", f"Contacto {name} agregado correctamente")
     
     def actualizar_lista_contactos(self):
         
         # Limpiar lista actual.
         for item in self.contactos_tree.get_children():
             self.contactos_tree.delete(item)
-            
-        contactos = ContactoRepository.obtener_todos()
+        
+        self.contactos = ContactoRepository.obtener_todos()
         # print(contactos)
         
         # Insertar todos los contactos.
-        for contacto in contactos:
+        for contacto in self.contactos:
             self.contactos_tree.insert("", tk.END, values=(
-                contacto["nombre"],
-                contacto["telefono"],
+                contacto["name"],
+                contacto["telephone"],
                 contacto["email"]
             ))
     
@@ -280,10 +297,10 @@ class AgendaContactos:
         while i < len(izquierda) and j < len(derecha):
             
             # Comparación según el criterio elegido.
-            if criterio == "nombre" and izquierda[i]["nombre"].lower() <= derecha[j]["nombre"].lower():
+            if criterio == "name" and izquierda[i]["name"].lower() <= derecha[j]["name"].lower():
                 resultado.append(izquierda[i])
                 i += 1
-            elif criterio == "telefono" and izquierda[i]["telefono"] <= derecha[j]["telefono"]:
+            elif criterio == "telephone" and izquierda[i]["telephone"] <= derecha[j]["telephone"]:
                 resultado.append(izquierda[i])
                 i += 1
             else:
@@ -308,7 +325,7 @@ class AgendaContactos:
         resultados = []
         
         for contacto in self.contactos:
-            if texto_busqueda in contacto["nombre"].lower():
+            if texto_busqueda in contacto["name"].lower():
                 resultados.append(contacto)
                 encontrado = True
         
@@ -316,8 +333,8 @@ class AgendaContactos:
             # Mostrar el primer contacto encontrado.
             primer_resultado = resultados[0]
             self.resultado_texto.set(
-                f"Contacto encontrado:\nNombre: {primer_resultado['nombre']}\n"
-                f"Teléfono: {primer_resultado['telefono']}\n"
+                f"Contacto encontrado:\nNombre: {primer_resultado['name']}\n"
+                f"Teléfono: {primer_resultado['telephone']}\n"
                 f"Email: {primer_resultado['email'] if primer_resultado['email'] else 'No especificado'}"
             )
         else:
@@ -333,11 +350,11 @@ class AgendaContactos:
         if indice >= len(contactos):
             return primer_nombre
         
-        nombre_actual = contactos[indice]["nombre"].lower()
+        nombre_actual = contactos[indice]["name"].lower()
         
         # Si es el primer contacto o es alfabéticamente anterior al actual primer nombre.
         if primer_nombre is None or nombre_actual < primer_nombre.lower():
-            primer_nombre = contactos[indice]["nombre"]
+            primer_nombre = contactos[indice]["name"]
         
         # Llamada recursiva con el siguiente índice.
         return self.encontrar_primer_nombre_recursivo(contactos, indice + 1, primer_nombre)
@@ -371,66 +388,121 @@ class AgendaContactos:
     
     def subir_contactos(self):
         item = ""
-        j= 0
-        lista_contactos =[]
-        
+        lista_contactos = []
+    
         # Abre el explorador de archivos.
         ruta = filedialog.askopenfilename(
             title="Selecciona un archivo de texto",
             filetypes=[("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")]
         )
-        
-        
-        if ruta:                        
+    
+        if ruta:
             with open(ruta, 'r', encoding='utf-8') as archivo:
-                contenido = archivo.read().replace("\n", ",")                
+                contenido = archivo.read().replace("\n", ",")
+                               
             # print(type(contenido))
             # print(f"Contenido: {contenido}")
                                                
             for i in contenido:
-                #print(i)
-                
-                # if i== ",":
-                #     continue
-                if i == ",":
-                    pass
-                else:
-                    item +=i
-                                                         
+                if i != ",":
+                    item += i
                 if i == ",":
                     lista_contactos.append(item)
-                    item=""
-            # print(f"lista: {lista_contactos}")
-            
-            idx=0 
-            
-            contacto = {
-                    "nombre": "",
-                    "telefono": "",
-                    "email": ""
-                } 
-                            
+                    item = ""
+        
+            idx = 0
+            contacto = {"name": "", "telephone": "", "email": ""}
+            contactos_a_guardar = []
+        
             for j in lista_contactos:
                 if idx == 0:
-                    contacto["nombre"] = j.strip()
+                    contacto["name"] = j.strip()
                 elif idx == 1:
-                    contacto["telefono"] = j.strip()
+                    contacto["telephone"] = j.strip()
                 elif idx == 2:
                     contacto["email"] = j.strip()
-                    # Verificar si el contacto ya existe (por nombre y teléfono)
+                
+                    # Verificar duplicados: comparar con BD actual
                     existe = any(
-                        c["nombre"].lower() == contacto["nombre"].lower() and
-                        c["telefono"] == contacto["telefono"]
+                        c["name"].lower() == contacto["name"].lower() and
+                        c["telephone"] == contacto["telephone"]
                         for c in self.contactos
                     )
+                
                     if not existe:
-                        self.contactos.append(contacto.copy())
+                        contactos_a_guardar.append(contacto.copy())
+                
                     idx = -1
                 idx += 1
-                
-            self.actualizar_lista_contactos()                                
-                        
-                # Mostrar el contenido en el widget Text
-                # texto.delete("1.0", tk.END)  # Limpia el contenido anterior
-                # texto.insert(tk.END, contenido)
+        
+        # Guardar solo los contactos nuevos
+        for contacto in contactos_a_guardar:
+            ContactoRepository.guardar(
+                contacto["name"],
+                contacto["telephone"],
+                contacto["email"]
+            )
+        
+        messagebox.showinfo("Éxito", f"Se importaron {len(contactos_a_guardar)} contactos nuevos")
+        self.actualizar_lista_contactos()
+    
+    def on_contacto_select(self, event):
+        selected_items = self.contactos_tree.selection()
+        if selected_items:
+            item = selected_items[0]
+            values = self.contactos_tree.item(item, 'values')
+            for c in self.contactos:
+                if c['name'] == values[0] and c['telephone'] == values[1]:
+                    self.selected_contact_id = c['id']
+                    self.nombre_entry.delete(0, tk.END)
+                    self.nombre_entry.insert(0, c['name'])
+                    self.telefono_entry.delete(0, tk.END)
+                    self.telefono_entry.insert(0, c['telephone'])
+                    self.email_entry.delete(0, tk.END)
+                    if c['email']:
+                        self.email_entry.insert(0, c['email'])
+                    break
+
+    def actualizar_contacto(self):
+        if not self.selected_contact_id:
+            messagebox.showerror("Error", "Selecciona un contacto para actualizar")
+            return
+        try:
+            name = self.nombre_entry.get().strip()
+            telephone = self.telefono_entry.get().strip()
+            email = self.email_entry.get().strip()
+            contacto = baseContact(
+                name=name,
+                telephone=telephone,
+                email=email if email else None            
+            )
+            ContactoRepository.actualizar(self.selected_contact_id, contacto.name, contacto.telephone, contacto.email)
+            messagebox.showinfo("Éxito", "Contacto actualizado")
+            self.selected_contact_id = None
+            self.actualizar_lista_contactos()
+            self.actualizar_estadisticas()
+            self.nombre_entry.delete(0, tk.END)
+            self.telefono_entry.delete(0, tk.END)
+            self.email_entry.delete(0, tk.END)
+        except ValueError as e:
+            messagebox.showerror("Error de validación", str(e))
+        except Exception as e:
+            messagebox.showerror("Error", "Error al actualizar contacto")
+
+    def eliminar_contacto(self):
+        if not self.selected_contact_id:
+            messagebox.showerror("Error", "Selecciona un contacto para eliminar")
+            return
+        if messagebox.askyesno("Confirmar", "¿Estás seguro de eliminar este contacto?"):
+            try:
+                ContactoRepository.eliminar(self.selected_contact_id)
+                messagebox.showinfo("Éxito", "Contacto eliminado")
+                self.selected_contact_id = None
+                self.actualizar_lista_contactos()
+                self.actualizar_estadisticas()
+                self.nombre_entry.delete(0, tk.END)
+                self.telefono_entry.delete(0, tk.END)
+                self.email_entry.delete(0, tk.END)
+            except Exception as e:
+                messagebox.showerror("Error", "Error al eliminar contacto")
 
