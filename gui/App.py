@@ -5,9 +5,10 @@ from tkinter import filedialog
 from repository import ContactoRepository
 from pydantic import BaseModel
 from dataEntry import baseContact 
+from typing import List, Dict, Optional, Any 
 
 class AgendaContactos:
-    def __init__(self, root):
+    def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Agenda de Contactos")
         self.root.geometry("660x920")
@@ -18,14 +19,14 @@ class AgendaContactos:
         self.configurar_estilos()
         
         # Lista para almacenar los contactos (cada contacto es un diccionario).
-        self.contactos = []
-        self.contacts = None
-        self.selected_contact_id = None
+        self.contactos: List[Dict[str, Any]] = []
+        self.contacts: Optional[Any] = None
+        self.selected_contact_id: Optional[int] = None
         
         # Crear los elementos de la interfaz.
         self.crear_interfaz()
     
-    def configurar_estilos(self):
+    def configurar_estilos(self) -> None:
         
         # Configurar estilos globales.
         style = ttk.Style()
@@ -88,7 +89,7 @@ class AgendaContactos:
         # Configurar el fondo de la ventana principal.
         self.root.configure(bg=self.color_fondo)
     
-    def crear_interfaz(self):
+    def crear_interfaz(self) -> None:
         
         # Frame principal.
         main_frame = ttk.Frame(self.root, padding="10")
@@ -214,7 +215,7 @@ class AgendaContactos:
         #     messagebox.showerror("Error", "Formato de email inválido")
         #     return
     
-    def agregar_contacto(self):
+    def agregar_contacto(self) -> None:
                         
         try: 
             name = self.nombre_entry.get().strip()
@@ -248,7 +249,7 @@ class AgendaContactos:
         
         messagebox.showinfo("Éxito", f"Contacto {name} agregado correctamente")
     
-    def actualizar_lista_contactos(self):
+    def actualizar_lista_contactos(self) -> None:
         
         # Limpiar lista actual.
         for item in self.contactos_tree.get_children():
@@ -265,7 +266,7 @@ class AgendaContactos:
                 contacto["email"]
             ))
     
-    def ordenar_contactos(self, criterio):
+    def ordenar_contactos(self, criterio: str) -> None:
         
         # Algoritmo de ordenamiento: Merge Sort.
         if not self.contactos:
@@ -276,7 +277,7 @@ class AgendaContactos:
         self.actualizar_lista_contactos()
         messagebox.showinfo("Éxito", f"Contactos ordenados por {criterio}")
     
-    def merge_sort(self, arr, criterio):
+    def merge_sort(self, arr: List[Dict[str, Any]], criterio: str) -> List[Dict[str, Any]]:
         
         # Implementación del algoritmo Merge Sort.
         if len(arr) <= 1:
@@ -290,7 +291,7 @@ class AgendaContactos:
         # Combinar las mitades ordenadas.
         return self.merge(izquierda, derecha, criterio)
     
-    def merge(self, izquierda, derecha, criterio):
+    def merge(self, izquierda: List[Dict[str, Any]], derecha: List[Dict[str, Any]], criterio: str) -> List[Dict[str, Any]]:
         resultado = []
         i = j = 0
         
@@ -313,7 +314,7 @@ class AgendaContactos:
         
         return resultado
     
-    def buscar_contacto(self):
+    def buscar_contacto(self) -> None:
         texto_busqueda = self.busqueda_entry.get().strip().lower()
         
         if not texto_busqueda:
@@ -340,7 +341,7 @@ class AgendaContactos:
         else:
             self.resultado_texto.set("No se encontraron contactos con ese nombre")
     
-    def encontrar_primer_nombre_recursivo(self, contactos, indice=0, primer_nombre=None):
+    def encontrar_primer_nombre_recursivo(self, contactos: List[Dict[str, Any]], indice: int = 0, primer_nombre: Optional[str] = None) -> Optional[str]:
         
         # Método recursivo para encontrar el primer nombre alfabéticamente.
         if not contactos:
@@ -359,10 +360,10 @@ class AgendaContactos:
         # Llamada recursiva con el siguiente índice.
         return self.encontrar_primer_nombre_recursivo(contactos, indice + 1, primer_nombre)
     
-    def contar_contactos_con_email(self):
+    def contar_contactos_con_email(self) -> int:
         return sum(1 for contacto in self.contactos if contacto["email"])
     
-    def mostrar_estadisticas(self):
+    def mostrar_estadisticas(self) -> None:
         total_contactos = len(self.contactos)
         contactos_con_email = self.contar_contactos_con_email()
         
@@ -376,7 +377,7 @@ class AgendaContactos:
         
         messagebox.showinfo("Estadísticas", "Estadísticas actualizadas")
     
-    def actualizar_estadisticas(self):
+    def actualizar_estadisticas(self) -> None:
         # Actualiza las estadísticas sin mostrar mensaje.
         total_contactos = len(self.contactos)
         contactos_con_email = self.contar_contactos_con_email()
@@ -386,7 +387,7 @@ class AgendaContactos:
         self.contactos_email_var.set(f"Contactos con email: {contactos_con_email}")
         self.primer_nombre_var.set(f"Primer nombre alfabéticamente: {primer_nombre}")
     
-    def subir_contactos(self):
+    def subir_contactos(self) -> None:
         item = ""
         lista_contactos = []
     
@@ -446,7 +447,7 @@ class AgendaContactos:
         messagebox.showinfo("Éxito", f"Se importaron {len(contactos_a_guardar)} contactos nuevos")
         self.actualizar_lista_contactos()
     
-    def on_contacto_select(self, event):
+    def on_contacto_select(self, event) -> None:
         selected_items = self.contactos_tree.selection()
         if selected_items:
             item = selected_items[0]
@@ -463,13 +464,13 @@ class AgendaContactos:
                         self.email_entry.insert(0, c['email'])
                     break
 
-    def actualizar_contacto(self):
+    def actualizar_contacto(self) -> None:
         if not self.selected_contact_id:
             messagebox.showerror("Error", "Selecciona un contacto para actualizar")
             return
         try:
-            name = self.nombre_entry.get().strip()
-            telephone = self.telefono_entry.get().strip()
+            name : str = self.nombre_entry.get().strip()
+            telephone : str = self.telefono_entry.get().strip()
             email = self.email_entry.get().strip()
             contacto = baseContact(
                 name=name,
@@ -489,7 +490,7 @@ class AgendaContactos:
         except Exception as e:
             messagebox.showerror("Error", "Error al actualizar contacto")
 
-    def eliminar_contacto(self):
+    def eliminar_contacto(self) -> None:
         if not self.selected_contact_id:
             messagebox.showerror("Error", "Selecciona un contacto para eliminar")
             return

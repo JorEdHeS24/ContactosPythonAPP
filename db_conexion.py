@@ -1,8 +1,9 @@
 import mysql.connector
+from typing import List, Tuple, Any
 
 # GET DATA FORM DB
 
-def get_db():
+def get_db() -> List[Tuple[Any, ...]]:
     config = {
         "host": "brt7dgh8sbljdrj8cnbu-mysql.services.clever-cloud.com",
         "port": "3306",
